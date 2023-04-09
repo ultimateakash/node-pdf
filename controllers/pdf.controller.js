@@ -1,34 +1,36 @@
 const fs = require('fs');
+const htmlPDF = require('puppeteer-html-pdf');
 const readFile = require('util').promisify(fs.readFile);
-const hbs = require('hbs');
-const pdf = require('html-pdf'); 
 
-exports.print = async (req, res) => {  
-    const invoiceItems = [
-        { 'item': 'Website Design', 'amount': 50.50 },
-        { 'item': 'Hosting (3 months)', 'amount': 80.50 },
-        { 'item': 'Domain (1 year)', 'amount': 10.50 }
-    ]
-    const invoiceData = {
-        'invoice_id': 123,
-        'transaction_id': 1234567,
-        'payment_method': 'Paypal',
-        'creation_date': 'M d, Y',
-        'total_amount': 141.50
+exports.print = async (req, res) => {
+    const pdfContext = {
+        invoiceItems: [
+            { item: 'Website Design', amount: 5000 },
+            { item: 'Hosting (3 months)', amount: 2000 },
+            { item: 'Domain (1 year)', amount: 1000 },
+        ],
+        invoiceData: {
+            invoice_id: 123,
+            transaction_id: 1234567,
+            payment_method: 'Paypal',
+            creation_date: '04-05-1993',
+            total_amount: 141.5,
+        },
+        baseUrl: `${req.protocol}://${req.get('host')}` // http://localhost:3000
     }
-
-    const content  = await readFile('views/invoice.hbs','utf8');  
-    const template = hbs.compile(content);
-    const html     = template({ invoiceItems, invoiceData });
 
     const options = {
-        base: `${req.protocol}://${req.get('host')}`, // http://localhost:3000
-        format: 'A4'
+        format: 'A4',
+        context: pdfContext
     }
 
-    pdf.create(html, options).toBuffer((err, buffer) => { 
-        if (err) return console.log(err);
+    try {
+        const content = await readFile('views/invoice.hbs', 'utf8');
+        const buffer = await htmlPDF.create(content, options);
         res.attachment('invoice.pdf')
         res.end(buffer);
-    });
+    } catch (error) {
+        console.log(error);
+        res.send('Something went wrong.')
+    }
 }
