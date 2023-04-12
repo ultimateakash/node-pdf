@@ -1,9 +1,10 @@
 const fs = require('fs');
+const hbs = require('hbs');
 const htmlPDF = require('puppeteer-html-pdf');
 const readFile = require('util').promisify(fs.readFile);
 
 exports.print = async (req, res) => {
-    const pdfContext = {
+    const pdfData = {
         invoiceItems: [
             { item: 'Website Design', amount: 5000 },
             { item: 'Hosting (3 months)', amount: 2000 },
@@ -20,12 +21,14 @@ exports.print = async (req, res) => {
     }
 
     const options = {
-        format: 'A4',
-        context: pdfContext
+        format: 'A4'
     }
 
     try {
-        const content = await readFile('views/invoice.hbs', 'utf8');
+        const html = await readFile('views/invoice.hbs', 'utf8');  
+        const template = hbs.compile(html);
+        const content = template(pdfData); 
+        
         const buffer = await htmlPDF.create(content, options);
         res.attachment('invoice.pdf')
         res.end(buffer);
