@@ -1,7 +1,5 @@
-const fs = require('fs');
 const hbs = require('hbs');
-const htmlPDF = require('puppeteer-html-pdf');
-const readFile = require('util').promisify(fs.readFile);
+const PuppeteerHTMLPDF = require('puppeteer-html-pdf');
 
 exports.print = async (req, res) => {
     const pdfData = {
@@ -20,18 +18,17 @@ exports.print = async (req, res) => {
         baseUrl: `${req.protocol}://${req.get('host')}` // http://localhost:3000
     }
 
-    const options = {
-        format: 'A4'
-    }
+    const htmlPDF = new PuppeteerHTMLPDF();
+    htmlPDF.setOptions({ format: 'A4' }); 
 
     try {
-        const html = await readFile('views/invoice.hbs', 'utf8');  
+        const html = await htmlPDF.readFile('views/invoice.hbs', 'utf8');  
         const template = hbs.compile(html);
-        const content = template(pdfData); 
-        
-        const buffer = await htmlPDF.create(content, options);
+        const content = template(pdfData);
+
+        const pdfBuffer = await htmlPDF.create(content); 
         res.attachment('invoice.pdf')
-        res.end(buffer);
+        res.end(pdfBuffer);
     } catch (error) {
         console.log(error);
         res.send('Something went wrong.')
